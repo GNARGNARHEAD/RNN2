@@ -2,6 +2,8 @@
 
 Reviewed 4 November 2026. This pass follows connections beyond the initial architecture, tutoring, and interpretability survey. The aim is to find useful questions and simple principles. None of the mechanisms below is an adopted project requirement.
 
+Applicability updated 14 November 2026: the active target is approximately 20B parameters on one B200, with persistent cloud checkpoints. The local probe and its proposed follow-up experiments are retired. Research mechanisms below remain optional; follow the [B200 implementation plan](../experiments/2026-11-14-b200-plan.md) for current work. Small-model findings do not establish results at the new target scale.
+
 The student will start without pretrained weights. Where these papers rely on substantial prior training, that dependence remains part of their evidence limits; it cannot be treated as an ability already available to our student.
 
 ## Detect a developmental change before deciding what it means
@@ -64,7 +66,7 @@ Tiny Recursive Message Passing illustrates another cost: wiring affects how many
 
 Lake and Baroni train transformers across instruction-learning episodes with changing symbol meanings and compositions. The resulting models infer new mappings from examples, but their few-shot tests follow extensive meta-training and use fixed weights at test time. The authors distinguish this from a model of developmental acquisition. [Nature, October 2023](https://www.nature.com/articles/s41586-023-06668-3).
 
-TinyStories shows that carefully generated, restricted-language stories can support coherent text in very small models. Its deliberate variation matters, while its teacher-generated data, external evaluation, and accelerator training costs limit conclusions about independent local development. [TinyStories, May 2023](https://arxiv.org/html/2305.07759).
+TinyStories shows that carefully generated, restricted-language stories can support coherent text in very small models. Its deliberate variation matters, while its teacher-generated data, external evaluation, and accelerator training costs limit conclusions about independent cumulative development. [TinyStories, May 2023](https://arxiv.org/html/2305.07759).
 
 **Question for RNN2:** can the tutor make a relationship easier to discover by varying names, presentation, and examples while retaining the underlying rule? This suggests richer practice and transfer tests without requiring a prescribed human developmental ladder.
 
@@ -72,7 +74,7 @@ TinyStories shows that carefully generated, restricted-language stories can supp
 
 The strongest new direction is to study a developmental trajectory: preserve interesting moments, detect changes, and investigate their meaning. Curiosity and abstraction-learning research add questions about which experiences are useful and what becomes reusable after assistance is withdrawn.
 
-The mechanisms reviewed here remain options. The first local system can support these questions through modest observation, saved checkpoints, varied teaching, and reversible interventions. More elaborate memory, interpretability, or curriculum machinery should answer a particular question that the running learner exposes.
+The mechanisms reviewed here remain options. The B200 student can support these questions through modest observation, saved checkpoints, varied teaching, and reversible interventions. More elaborate memory, interpretability, or curriculum machinery should answer a particular question that the running learner exposes.
 
 ## Depth, width, and Ripple — 5 November 2026
 
@@ -82,20 +84,11 @@ The launch report combines architecture, normalization, information-flow, data, 
 
 Controlled depth experiments at 41M, 134M, and 374M parameters found initial gains followed by diminishing returns or deterioration. Crucially, they held residual width and attention dimensions fixed and traded depth against FFN width. Their results do not prescribe our residual-width/depth ratio; their substantial pretraining also differs from our developmental setting. [Petty et al., NAACL 2024](https://arxiv.org/html/2310.19956v2).
 
-One relevant lead from Ripple is Value Residual Learning: later attention layers receive a mixture of their own value vectors and first-layer values. Its separate paper includes 82M–468M experiments, making preservation of early information through depth a concrete question at our scale. The tests concern language-model loss under extensive training, not cumulative tutored development. [Primary paper](https://arxiv.org/pdf/2410.17897).
+One relevant lead from Ripple is Value Residual Learning: later attention layers receive a mixture of their own value vectors and first-layer values. Its separate paper includes 82M–468M experiments, making preservation of early information through depth a concrete research question. The tests concern language-model loss under extensive training, not cumulative tutored development or validation at our approximately 20B target. [Primary paper](https://arxiv.org/pdf/2410.17897).
 
 **Implications:** distinguish residual width, attention width, FFN width, and computational depth. More layers supply successive transformations, not a guaranteed count of reasoning steps. Residual width is neither a concept count nor the total knowledge capacity of a model: weights and multiple token states also matter. There is no established numerical minimum for a general world representation without specifying tasks, precision, context, accuracy, and computational resources.
 
-For our existing full-attention, 4x GELU-FFN probe, body parameters are approximately `12 * layers * width^2`. This formula does not describe Ripple's wider gated blocks. Candidate shapes near 100M total parameters, using our current vocabulary of 256 and sequence length 128, are:
-
-| Residual width | Layers | Calculated parameters |
-|---:|---:|---:|
-| 1,024 | 8 | 101,402,880 |
-| 768 | 14 | 99,691,264 |
-| 512 | 32 | 101,156,096 |
-| 384 | 56 | 99,552,256 |
-
-These are arithmetic candidates, not measured training results or a selected student. More layers introduce sequential execution and can increase saved activation memory even at similar parameter counts. A useful comparison would keep the block design, vocabulary, and educational conditions comparable, use initialization suitable for the depth, and measure progress per example and per elapsed time, retention, transfer, memory, and thermals. Residual width 512 or 768 is a practical hypothesis to investigate, not a theoretical lower bound.
+The former local probe's approximately 100M shape comparison was unimplemented and is retired. For the B200 target, exact depth, residual width, attention width, FFN dimensions, vocabulary, and context remain to be established together. More layers introduce sequential execution and can increase saved activation memory even at similar parameter counts. Compare proposed shapes with consistent educational conditions and suitable initialization, measuring progress per example and time, retention, transfer, and complete memory use. No narrow-width lower bound or layer count is selected by this research.
 
 The broader lesson for RNN2 is to combine appropriate information flow and stable learning with experiences that respond to the student's development. Each mechanism should earn its place through a controlled comparison at the intended student scale.
 
@@ -111,8 +104,56 @@ Transformer-XL carries prior hidden states while stopping their gradients. This 
 
 **Possible minimal design:** give each tap its own small state slot, learned write projection, and access to learned reads from the previous bus. Freeze the read buffer for a tick, collect writes into a separate next-state buffer, and publish that state on the next tick. Gates and gradual updates make feedback strength and persistence controllable. Separate writer slots retain source identity and avoid blindly averaging representations from different depths. Five slots of 64 FP32 values would occupy 1.25 KiB per stream for one state buffer; projection parameters and training activations are additional costs. These numbers are illustrative, not selected dimensions.
 
-**Timing:** a tick must be explicit. Per-token updates maximize responsiveness but introduce sequential dependencies across training tokens. Per-chunk updates preserve parallelism within a chunk and are a practical first hypothesis for this GPU. A whole-chunk summary may influence only later chunks, never earlier predictions in the same chunk. The delay removes a same-tick circular dependency; it does not parallelize the main stack or make recurrence free.
+**Timing:** a tick must be explicit. Per-token updates maximize responsiveness but introduce sequential dependencies across training tokens. Per-chunk updates preserve parallelism within a chunk and are a hypothesis to measure if this design is revisited. A whole-chunk summary may influence only later chunks, never earlier predictions in the same chunk. The delay removes a same-tick circular dependency; it does not parallelize the main stack or make recurrence free.
 
 **Training:** if a write affects only a later loss, backpropagation must connect that later use to the write. An initial experiment should unroll at least two ticks and compare longer bounded windows as memory permits. Detach the graph at window boundaries while carrying the numerical bus onward. The bus can persist across teaching blocks and tutor reviews. Use coherent streams and separate state per stream; preserve state with checkpoints. Weight updates and direct edits can change how stored representations are interpreted, so continuity through those changes needs examination.
 
 **Evaluation:** compare no bus, last-layer feedback, and distributed feedback under comparable memory and teaching budgets. Test use of history, resistance to distraction, correction when context changes, finite/recoverable dynamics, and durable learning after a diagnostic state reset. Shuffled or frozen bus controls can help establish whether useful communication is occurring. Keep contextual memory and persistent parameter learning distinct. This remains an architecture candidate, not a requirement or a demonstrated stability mechanism.
+
+## Predictive coding as a learning-rule comparison — 12 November 2026
+
+**Status:** parked research, not part of the B200 implementation sequence or an adopted learning mechanism. The local comparison was never implemented. The question is whether adjusting temporary hidden states before updating weights improves the randomly initialized student's learning enough to justify its measured cost. Predicting the next event is a task; predictive coding (PC) is a family of inference and learning procedures. Neither automatically supplies continual-learning retention, action selection, or the full uncertainty model discussed in the Friston/Goertzel podcast.
+
+### Evidence and its limits
+
+PC can alternate two operations: hold weights fixed while adjusting internal activities to reduce inconsistencies, then hold those activities fixed while changing the weights. Gradients still appear in both operations. [Learning on Arbitrary Graph Topologies via Predictive Coding](https://pmc.ncbi.nlm.nih.gov/articles/PMC7614467/).
+
+There is direct, small-transformer evidence. *Predictive Coding beyond Gaussian Distributions* trains a causal one-block, width-128 transformer and finds that categorical/KL treatment at softmax boundaries substantially improves its PC result. This does not establish an advantage at our scale or on our GPU. [Primary paper](https://arxiv.org/html/2211.03481v1).
+
+FabricPC supplies open-source transformer examples and a PC/backprop switch on the same graph. It is Python/JAX, with documented CUDA GPU setup, not a validated replacement for the planned C++ runtime. A contributor's matched five-seed experiment on a 413,249-parameter, two-block character model reports test perplexity 7.12 ± 0.05 for four PC settling steps versus 6.00 ± 0.05 for backprop, taking about 1.46 times as long. More settling improved early-layer gradient alignment but worsened test performance in those runs. This is an author's research report, not an independently reproduced benchmark or a timing forecast for our B200 student. [Repository](https://github.com/trueagi-io/FabricPC), [experiment report](https://bezawit.dev/projects/fabricpc/).
+
+Solver choice matters. FabricPC distinguishes state-based PC, where feedback travels approximately one graph boundary per simultaneous settling step, from error-parameterized PC using a global reverse pass and backprop-scale memory. The PCX benchmark also finds depth and settling costs in actual GPU execution; theoretically parallel local operations do not automatically run in parallel. [FabricPC guide](https://github.com/trueagi-io/FabricPC/blob/main/docs/user_guides/03_how_predictive_coding_works.md), [PCX benchmark](https://arxiv.org/html/2407.01163).
+
+### Concept retained for a possible future comparison
+
+If revisited, keep forward modules identical across the comparison, including embeddings, causal attention, residual paths, normalization, and output head. One possible grouping places embeddings and the first transformer block in the first module, keeping embeddings trainable. Introduce a temporary state `z_l` at each block output. Input token IDs remain fixed; final normalization and projection form the output head `g`. This grouping is a research proposal, not the selected 20B architecture.
+
+For observed targets `y`, use the proposed energy
+
+```text
+e_l = z_l - f_l(z_(l-1); theta_l)
+E = sum_l 0.5 * ||e_l||^2 + beta * cross_entropy(g(z_L), y)
+```
+
+Cross entropy accepts logits; logits are not clamped to one-hot targets. Sum hidden squared errors over features, then average both consistency error and cross entropy over the same valid token positions. Record the relative weight `beta` explicitly, initially 1. State and weight learning rates are separate choices.
+
+For each chunk:
+
+1. Initialize states with an ordinary forward pass.
+2. Freeze weights. Take a bounded number `K` of simultaneous state-gradient steps, recomputing predictions as states change. Every state update uses the same old snapshot.
+3. Detach settled states. Calculate each module's parameter gradient from its local error, and the head's gradient from cross entropy; make one AdamW weight update.
+4. Discard temporary states. Evaluate with a fresh ordinary causal forward pass, without targets being available to hidden-state inference.
+
+LibTorch can compute the local derivatives through each module. Do not retain or differentiate through the whole settling trajectory. This is local communication between modules, with ordinary differentiation inside each module; it is not neuron-local learning or a demonstrated asynchronous GPU execution scheme. A whole transformer block remains the unit of local computation.
+
+This variant recomputes predictions as states move. It is not the fixed-prediction construction that can reproduce backprop gradients. Check its state and parameter gradients against finite differences of its own energy, rather than requiring equality to backprop. [Backprop relationship and assumptions](https://arxiv.org/html/2006.04182v5).
+
+### Conditions for reconsidering this mechanism
+
+The old laptop-sized comparison is retired. A future proposal should use small configurations of the same B200 runtime for numerical checks, followed by a controlled learning comparison. Verify state/weight derivatives, finite values, causality, and recovery; confirm that supervisory influence reaches the earliest module. Match initialization, data, precision, optimizer family, evaluation, and tuning effort, and account for all relaxation work and additional state memory.
+
+Useful evidence would concern independent prediction, retention after new learning, and transfer at acceptable measured cost. Synthetic repeated symbols can check machinery but do not establish those properties. No PC implementation or performance claim at 20B follows from the local experiment or these papers.
+
+Temporary settling is not persistent contextual memory. Resetting these states isolates learning stored in weights. A delayed bus, persistent states, adaptive tutor choices, and action learning remain separate experimental changes. Reduced internal energy alone is not evidence of better independent prediction, retention, or transfer.
+
+Finally, this fixed-precision, point-state candidate does not include a posterior covariance or entropy over states or weights. The fuller variational account requires explicit priors and uncertainty approximations; adding a scalar error weight does not implement it. [Variational free energy and the Laplace approximation](https://www.fil.ion.ucl.ac.uk/~karl/Variational%20free%20energy%20and%20the%20Laplace%20approximation.pdf). A PC feasibility result would therefore not confirm the podcast's broader efficiency or developmental claims.

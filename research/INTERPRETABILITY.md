@@ -2,6 +2,8 @@
 
 Reviewed 4 November 2026. The useful question is how to connect changes in the student's behaviour with changes in its computation. These studies provide instruments for that investigation; they do not supply a complete interpretation of an arbitrary model.
 
+Applicability updated 14 November 2026: inspection will run beside the approximately 20B student on its B200, using the same C++ runtime. Return bounded summaries and selected tensors to the laptop; retain full learning checkpoints in persistent cloud storage. Budget inspection memory and latency alongside training, and avoid assuming that a complete activation trace or a second full model fits. See the [implementation plan](../experiments/2026-11-14-b200-plan.md).
+
 ## Watching mechanisms develop
 
 *Progress measures for grokking via mechanistic interpretability* follows small transformers learning modular addition. The authors reconstructed a Fourier-based computation and tested it through interventions. Measures derived from that mechanism showed useful structure forming before the conspicuous rise in test accuracy. The work motivates preserving checkpoints during apparently flat performance, while its hand-derived measures remain specific to the task. [Nanda et al., ICLR 2023](https://arxiv.org/html/2301.05217v3).

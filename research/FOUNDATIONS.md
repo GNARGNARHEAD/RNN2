@@ -2,13 +2,15 @@
 
 Reviewed 4 November 2026. This first reading pass asks which findings improve our observations or decisions while leaving the implementation small. The sources describe results in different settings; applying their lessons to this student remains an experiment.
 
+Applicability updated 14 November 2026: the project targets approximately 20B parameters on one B200 with persistent cloud checkpoints. These research findings inform that work; they do not prescribe architecture or replace the [active implementation plan](../experiments/2026-11-14-b200-plan.md). The local GPU experiment is retired.
+
 Our student will begin without pretrained weights. Results obtained with already capable students can suggest methods to investigate, but do not establish how foundational language and learning abilities will arise in this project.
 
 ## Liquid networks and efficient language models
 
 The original MIT liquid-network work concerns temporal dynamics. Liquid Time-Constant networks vary their effective time constants with input and state. Closed-form Continuous-time networks approximate those dynamics without the numerical differential-equation solver. Their reported speed advantages concern comparisons with differential-equation models, not modern language transformers. In the authors' implementation, a forward call updates hidden state; it does not update learned weights. Neural Circuit Policies provide structured sparse wiring for such cells. [CfC paper, 2022](https://arxiv.org/abs/2106.13898), [author implementation](https://github.com/mlech26l/ncps).
 
-Liquid AI's LFM3 release of 27 October 2026 is a different design: gated short convolutions combined with sliding-window and global attention. It is an example of allocating attention selectively in an efficient language model. Its documentation covers native llama.cpp inference and Transformers/TRL fine-tuning. The reported AMD edge hardware differs substantially from this laptop. Neither those inference results nor the control-task results above establish C++ training on our GPU. [LFM3 announcement](https://www.liquid.ai/blog/lfm3), [model card](https://huggingface.co/LiquidAI/LFM3-1.7B).
+Liquid AI's LFM3 release of 27 October 2026 is a different design: gated short convolutions combined with sliding-window and global attention. It is an example of allocating attention selectively in an efficient language model. The documentation reviewed covers native llama.cpp inference and Transformers/TRL fine-tuning. Its AMD edge measurements concern a different workload and hardware; neither those inference results nor the control-task results above establish from-scratch C++ training of our proposed B200 student. [LFM3 announcement](https://www.liquid.ai/blog/lfm3), [model card](https://huggingface.co/LiquidAI/LFM3-1.7B).
 
 **Implication:** keep hidden-state dynamics, persistent parameter learning, and execution efficiency distinguishable. Liquid mechanisms and hybrid language models are candidates to investigate if measurements justify them. The name alone does not imply continual learning.
 
@@ -47,4 +49,4 @@ Keep a few distinctions visible in our records:
 
 The first system can observe these through interactions, saved checkpoints, small probes, and ordinary updates. We can study unexpected internal behaviour more closely when it appears. The earlier weight-space programming review adds direct intervention as another experimental tool; these findings do not establish when it should replace teaching.
 
-The next experiment remains the C++ GPU feasibility probe. Model and backend selection should consider execution, inspection, and updates together. This reading pass adds questions to observe, without selecting a liquid architecture, a new optimizer, or a curriculum algorithm. Return to the literature when a result gives us a more specific question.
+The next infrastructure work is the CUDA runtime and recovery path in the [B200 plan](../experiments/2026-11-14-b200-plan.md). Consider execution, inspection, and updates together at the approximately 20B target. This reading pass adds questions to observe, without selecting a liquid architecture, a new optimizer, or a curriculum algorithm. Return to the literature when a result gives us a more specific question.
